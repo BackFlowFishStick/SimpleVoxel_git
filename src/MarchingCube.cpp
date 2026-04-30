@@ -304,7 +304,7 @@ static const int triTable[256][16] =
 {0, 3, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
 {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1}
 };
-// 检查半径为1的球形区域
+
 float MarchingCube::scalerField(glm::vec3 p)
 {
     return p.x * p.x + p.y * p.y + p.z * p.z - 1.f;
@@ -324,7 +324,6 @@ glm::vec3 MarchingCube::vertexInterp(float isoLevel, const glm::vec3& p1, const 
 
     mu = glm::clamp(mu, 0.0f, 1.0f);
 
-    // glm::vec3 p = p1 + mu * (p2 - p1);
     auto p = p1 * ( 1.0f - mu ) + p2 * mu;
 
     return p;
@@ -389,7 +388,6 @@ void MarchingCube::generateMeshInfo()
                     glm::vec3 v1(triangles[t].p[1]);
                     glm::vec3 v2(triangles[t].p[2]);
 
-                    // 面法线
                     glm::vec3 faceNormal = glm::normalize(glm::cross(v2 - v0, v1 - v0));
 
                     unsigned int idx0 = addVertex(v0, faceNormal);
@@ -452,7 +450,6 @@ Vertex MarchingCube::computeMergedVertex(int v0, int v1,
 {
     Vertex merged;
 
-    // 根据顶点权重计算新位置（权重基于相邻三角形数量）
     float weight0 = 1.0f;
     float weight1 = 1.0f;
 
@@ -465,9 +462,8 @@ Vertex MarchingCube::computeMergedVertex(int v0, int v1,
     }
 
     float totalWeight = weight0 + weight1;
-    float t = weight1 / totalWeight; // v1的权重比例
+    float t = weight1 / totalWeight; 
 
-    // 线性插值
     merged.position = m_vertices[v0].position * (1.0f - t) + m_vertices[v1].position * t;
     merged.normal = glm::normalize(m_vertices[v0].normal * (1.0f - t) + m_vertices[v1].normal * t);
 
@@ -484,7 +480,6 @@ void MarchingCube::processEdgeForCollapse(size_t v0, size_t v1, float collapseTh
 
     if (processedEdges.find(edgeKey) != processedEdges.end()) return;
 
-    // 检查是否是边界边（避免折叠边界）
     if (boundaryVertices.find(v0) != boundaryVertices.end() &&
         boundaryVertices.find(v1) != boundaryVertices.end()) {
         processedEdges.insert(edgeKey);
@@ -493,7 +488,6 @@ void MarchingCube::processEdgeForCollapse(size_t v0, size_t v1, float collapseTh
 
     float edgeLength = glm::length(m_vertices[v0].position - m_vertices[v1].position);
 
-    // 修正：只折叠短于阈值的边，但保留非常短的边（避免过度简化）
     if (edgeLength < collapseThreshold && edgeLength > preserveThreshold) {
         edgesToCollapse.push_back({v0, v1});
         processedEdges.insert(edgeKey);
@@ -515,8 +509,8 @@ void MarchingCube::isotropicalRemesh(float targetEdgeLength, int iterations)
     std::cout << "Initial vertices: " << m_vertices.size() << std::endl;
     std::cout << "Initial indices: " << m_indices.size() << std::endl;
 
-    auto splitThreshold = targetEdgeLength * 1.5f; // 分割阙值
-    auto collapseThreshold = targetEdgeLength * 0.6f; //折叠阙值
+    auto splitThreshold = targetEdgeLength * 1.5f; 
+    auto collapseThreshold = targetEdgeLength * 0.6f; 
     auto preserveThreshold = targetEdgeLength * 0.3f;
 
     auto prevVertexCount = static_cast<float>(m_vertices.size());
@@ -571,14 +565,12 @@ void MarchingCube::checkMeshIntegrity() const
     std::cout << "  Vertices: " << m_vertices.size() << std::endl;
     std::cout << "  Triangles: " << m_indices.size() / 3 << std::endl;
 
-    // 检查索引范围
     for (size_t i = 0; i < m_indices.size(); ++i) {
         if (m_indices[i] >= m_vertices.size()) {
             std::cerr << "  ERROR: Index " << m_indices[i] << " out of range!" << std::endl;
         }
     }
 
-    // 计算平均边长
     float totalEdgeLength = 0.0f;
     int edgeCount = 0;
     std::unordered_set<Edge, EdgeHash> uniqueEdges;
@@ -605,7 +597,6 @@ void MarchingCube::checkMeshIntegrity() const
         m_averageEdgeLength = avgLength;
         std::cout << "  Average edge length: " << avgLength << std::endl;
 
-        // 计算边长标准差
         float variance = 0.0f;
         for (const auto& edge : uniqueEdges) {
             float length = computeEdgeLength(edge.v1, edge.v2);
@@ -622,7 +613,6 @@ void MarchingCube::buildTopologyInfo(std::unordered_map<int, std::unordered_set<
     vertexToTriangles.clear();
     boundaryVertices.clear();
 
-    // 顶点到三角形的映射
     for (size_t i = 0; i < m_indices.size(); i += 3)
     {
         int triIndex = static_cast<int>(i / 3);
@@ -631,7 +621,6 @@ void MarchingCube::buildTopologyInfo(std::unordered_map<int, std::unordered_set<
         vertexToTriangles[m_indices[i + 2]].insert(triIndex);
     }
 
-    // 检测边界顶点（通过边计数）
     std::unordered_map<uint64_t, int> edgeCount;
     for (size_t i = 0; i < m_indices.size(); i += 3)
     {
@@ -648,10 +637,9 @@ void MarchingCube::buildTopologyInfo(std::unordered_map<int, std::unordered_set<
         edgeCount[e2]++;
     }
 
-    // 标记边界顶点
     for (const auto& [edgeKey, count] : edgeCount)
     {
-        if (count == 1) // 边界边
+        if (count == 1) 
         {
             size_t v0 = edgeKey / m_vertices.size();
             size_t v1 = edgeKey % m_vertices.size();
@@ -677,18 +665,15 @@ void MarchingCube::buildEdgeInfo(std::unordered_set<Edge, EdgeHash>& edges,
 
         size_t triIdx = i / 3;
 
-        // 添加边
         Edge e01(v0, v1), e12(v1, v2), e20(v2, v0);
         edges.insert(e01);
         edges.insert(e12);
         edges.insert(e20);
 
-        // 边到三角形的映射
         edgeToTriangles[e01].push_back(triIdx);
         edgeToTriangles[e12].push_back(triIdx);
         edgeToTriangles[e20].push_back(triIdx);
 
-        // 邻接关系
         adjacencies[v0].push_back(v1);
         adjacencies[v0].push_back(v2);
         adjacencies[v1].push_back(v0);
@@ -697,7 +682,6 @@ void MarchingCube::buildEdgeInfo(std::unordered_set<Edge, EdgeHash>& edges,
         adjacencies[v2].push_back(v1);
     }
 
-    // 去除重复邻接
     for (auto& neighbors : adjacencies)
     {
         std::sort(neighbors.begin(), neighbors.end());
@@ -733,7 +717,6 @@ int MarchingCube::computeValenceCost(size_t v1, size_t v2, size_t v3, size_t v4,
 int MarchingCube::computeValenceCostAfterFlip(size_t v1, size_t v2, size_t v3, size_t v4,
     const std::vector<std::vector<size_t>>& adjacencies) const
 {
-    // 翻转后v1和v2的价数减1，v3和v4的价数加1
     int cost = 0;
     cost += std::abs(static_cast<int>(adjacencies[v1].size()) - 1 - 6);
     cost += std::abs(static_cast<int>(adjacencies[v2].size()) - 1 - 6);
@@ -746,10 +729,6 @@ bool MarchingCube::performEdgeFlip(size_t tri1, size_t tri2, size_t v1, size_t v
 {
     size_t idx1 = tri1 * 3;
     size_t idx2 = tri2 * 3;
-
-    // 重新配置三角形
-    // 原三角形1: v1, v2, v3 -> 新三角形1: v1, v3, v4
-    // 原三角形2: v1, v2, v4 -> 新三角形2: v2, v4, v3
 
     m_indices[idx1] = v1;
     m_indices[idx1 + 1] = v3;
@@ -765,7 +744,6 @@ bool MarchingCube::performEdgeFlip(size_t tri1, size_t tri2, size_t v1, size_t v
 void MarchingCube::updateLocalAdjacency(size_t v1, size_t v2, size_t v3, size_t v4,
     std::vector<std::vector<size_t>>& adjacencies)
 {
-    // 移除v1-v2邻接关系
     auto removeFromAdjacency = [&](size_t v, size_t neighbor) {
         auto& neighbors = adjacencies[v];
         neighbors.erase(std::remove(neighbors.begin(), neighbors.end(), neighbor), neighbors.end());
@@ -774,18 +752,15 @@ void MarchingCube::updateLocalAdjacency(size_t v1, size_t v2, size_t v3, size_t 
     removeFromAdjacency(v1, v2);
     removeFromAdjacency(v2, v1);
 
-    // 添加v3-v4邻接关系
     adjacencies[v3].push_back(v4);
     adjacencies[v4].push_back(v3);
 
-    // 更新其他邻接关系
     adjacencies[v1].push_back(v4);
     adjacencies[v4].push_back(v1);
 
     adjacencies[v2].push_back(v3);
     adjacencies[v3].push_back(v2);
 
-    // 去除重复
     for (size_t v : {v1, v2, v3, v4})
     {
         auto& neighbors = adjacencies[v];
@@ -974,7 +949,6 @@ int MarchingCube::splitLongEdges(float maxLength)
     std::vector<Vertex> newVertices = m_vertices;
     int splitCount = 0;
 
-    // 构建边到三角形映射
     std::unordered_map<Edge, std::vector<size_t>, EdgeHash> edgeToTriangles;
     for (size_t i = 0; i < m_indices.size(); i+=3)
     {
@@ -987,11 +961,10 @@ int MarchingCube::splitLongEdges(float maxLength)
         edgeToTriangles[Edge(v2, v0)].push_back(i / 3);
     }
 
-    // 收集要分割的边，从长到短
     std::vector<std::pair<Edge, float>> edgesToSplit;
     for (const auto& [edge, triangles] : edgeToTriangles)
     {
-        if (triangles.size() != 2) continue; // 非内部边不分割
+        if (triangles.size() != 2) continue; 
 
         float length = computeEdgeLength(edge.v1, edge.v2);
         if (length > maxLength)
@@ -1019,7 +992,6 @@ int MarchingCube::splitLongEdges(float maxLength)
         size_t newIndex = newVertices.size();
         newVertices.push_back(newVertex);
 
-        // 更新包含这条边的三角形
         const auto& triangles = edgeToTriangles[edge];
         for (auto triIdx : triangles)
         {
@@ -1030,19 +1002,17 @@ int MarchingCube::splitLongEdges(float maxLength)
 
             if ((v0 == edge.v1 && v1 == edge.v2) || (v1 == edge.v1 && v0 == edge.v2))
             {
-                // 边是 v0-v1
                 size_t v3 = v2;
                 newIndices.push_back(v0); newIndices.push_back(newIndex); newIndices.push_back(v3);
                 newIndices.push_back(newIndex); newIndices.push_back(v1); newIndices.push_back(v3);
             }
             else if ((v1 == edge.v1 && v2 == edge.v2) || (v2 == edge.v1 && v1 == edge.v2))
             {
-                // 边是 v1-v2
                 size_t v3 = v0;
                 newIndices.push_back(v1); newIndices.push_back(newIndex); newIndices.push_back(v3);
                 newIndices.push_back(newIndex); newIndices.push_back(v2); newIndices.push_back(v3);
             }
-            else // 边是 v2-v0
+            else 
             {
                 size_t v3 = v1;
                 newIndices.push_back(v2); newIndices.push_back(newIndex); newIndices.push_back(v3);
@@ -1054,7 +1024,6 @@ int MarchingCube::splitLongEdges(float maxLength)
         splitCount++;
     }
 
-    // 添加未修改的三角形
     for (size_t i = 0; i < m_indices.size(); i += 3)
     {
         Edge e1(m_indices[i], m_indices[i + 1]);
@@ -1084,12 +1053,10 @@ int MarchingCube::collapseShortEdges(float collapseThreshold, float preserveThre
     std::cout << "Collapsing short edges: collapseThreshold = " << collapseThreshold
     << ", preserveThreshold = " << preserveThreshold << std::endl;
 
-    // 构建必要的数据结构
     std::unordered_map<int, std::unordered_set<int>> vertexToTriangles;
     std::unordered_set<int> boundaryVertices;
     buildTopologyInfo(vertexToTriangles, boundaryVertices);
 
-    // 收集可折叠的边
     std::vector<std::pair<int, int>> edgesToCollapse;
     std::unordered_set<int64_t> processedEdges;
 
@@ -1107,7 +1074,6 @@ int MarchingCube::collapseShortEdges(float collapseThreshold, float preserveThre
                               boundaryVertices, edgesToCollapse, processedEdges);
     }
 
-    // 按长度排序,从短到长
     std::sort(edgesToCollapse.begin(), edgesToCollapse.end(),
         [&](const auto& a, const auto& b) {
             float lenA = glm::length(m_vertices[a.first].position - m_vertices[a.second].position);
@@ -1115,7 +1081,6 @@ int MarchingCube::collapseShortEdges(float collapseThreshold, float preserveThre
             return lenA < lenB;
         });
 
-    // 执行折叠
     std::unordered_map<int, int> vertexRemap;
     std::vector<bool> vertexUsed(m_vertices.size(), false);
     std::vector<Vertex> newVertices;
@@ -1124,25 +1089,21 @@ int MarchingCube::collapseShortEdges(float collapseThreshold, float preserveThre
 
     for (const auto& [v0, v1] : edgesToCollapse)
     {
-        // 检查顶点是否已被处理
         if (vertexRemap.find(v0) != vertexRemap.end() ||
             vertexRemap.find(v1) != vertexRemap.end())
         {
             continue;
         }
 
-        // 检查是否可以安全折叠
         if (!canCollapseEdge(v0, v1))
         {
             continue;
         }
 
-        // 计算新顶点（基于权重的插值）
         Vertex newVertex = computeMergedVertex(v0, v1, vertexToTriangles);
         int newIndex = static_cast<int>(newVertices.size());
         newVertices.push_back(newVertex);
 
-        // 更新映射
         vertexRemap[v0] = newIndex;
         vertexRemap[v1] = newIndex;
         vertexUsed[v0] = true;
@@ -1151,7 +1112,6 @@ int MarchingCube::collapseShortEdges(float collapseThreshold, float preserveThre
         collapseCount++;
     }
 
-    // 添加未处理的顶点
     for (size_t i = 0; i < m_vertices.size(); i++)
     {
         if (!vertexUsed[i])
@@ -1161,7 +1121,6 @@ int MarchingCube::collapseShortEdges(float collapseThreshold, float preserveThre
         }
     }
 
-    // 重新构建三角形（移除退化三角形）
     for (size_t i = 0; i < m_indices.size(); i += 3)
     {
         int v0 = vertexRemap[m_indices[i]];
@@ -1170,17 +1129,16 @@ int MarchingCube::collapseShortEdges(float collapseThreshold, float preserveThre
 
         if (v0 == v1 || v1 == v2 || v0 == v2)
         {
-            continue; // 跳过退化三角形
+            continue; 
         }
 
-        // 检查三角形法线方向（防止翻转）
         glm::vec3 normal = glm::normalize(glm::cross(
             newVertices[v1].position - newVertices[v0].position,
             newVertices[v2].position - newVertices[v0].position));
 
         if (glm::length(normal) < 0.001f)
         {
-            continue; // 跳过零面积三角形
+            continue;
         }
 
         newIndices.push_back(v0);
@@ -1198,14 +1156,12 @@ int MarchingCube::equalizeValences()
 {
     if (m_vertices.empty() || m_indices.empty()) return 0;
 
-    // 构建拓扑信息
     std::unordered_set<Edge, EdgeHash> edges;
     std::vector<std::vector<size_t>> adjacencies(m_vertices.size());
     std::unordered_map<Edge, std::vector<size_t>, EdgeHash> edgeToTriangles;
 
     buildEdgeInfo(edges, adjacencies, edgeToTriangles);
 
-    // 收集可翻转的边
     std::vector<FlipCandidate> candidates;
     int flipCount = 0;
 
@@ -1214,14 +1170,12 @@ int MarchingCube::equalizeValences()
         auto it = edgeToTriangles.find(edge);
         if (it == edgeToTriangles.end() || it->second.size() != 2)
         {
-            continue; // 只处理内部边
+            continue; 
         }
 
-        // 获取两个三角形
         size_t tri1 = it->second[0];
         size_t tri2 = it->second[1];
 
-        // 获取四个顶点
         size_t v1 = edge.v1, v2 = edge.v2;
         size_t v3 = findThirdVertex(tri1, v1, v2);
         size_t v4 = findThirdVertex(tri2, v1, v2);
@@ -1231,25 +1185,20 @@ int MarchingCube::equalizeValences()
             continue;
         }
 
-        // 检查是否可以翻转
         if (!canFlipEdge(v1, v2, v3, v4))
         {
             continue;
         }
 
-        // 计算价数改进
         int currentValence = computeValenceCost(v1, v2, v3, v4, adjacencies);
         int newValence = computeValenceCostAfterFlip(v1, v2, v3, v4, adjacencies);
 
-        // 只有显著改进时才翻转
-        if (newValence < currentValence - 1) // 至少改进2
+        if (newValence < currentValence - 1) 
         {
-            // 执行翻转
             if (performEdgeFlip(tri1, tri2, v1, v2, v3, v4))
             {
                 flipCount++;
 
-                // 更新局部邻接关系
                 updateLocalAdjacency(v1, v2, v3, v4, adjacencies);
             }
         }
@@ -1262,7 +1211,6 @@ void MarchingCube::tangentialRelaxation(int innerIterations, float lambda, bool 
 {
    if (m_vertices.empty() || m_indices.empty()) return;
 
-    // 检测边界顶点
     std::vector<bool> isBoundaryVertex;
     if (preserveBoundary)
     {
@@ -1273,7 +1221,6 @@ void MarchingCube::tangentialRelaxation(int innerIterations, float lambda, bool 
         isBoundaryVertex.assign(m_vertices.size(), false);
     }
 
-    // 构建邻接表
     std::vector<std::vector<size_t>> adjacency(m_vertices.size());
     for (size_t i = 0; i < m_indices.size(); i += 3)
     {
@@ -1289,14 +1236,12 @@ void MarchingCube::tangentialRelaxation(int innerIterations, float lambda, bool 
         adjacency[v2].push_back(v1);
     }
 
-    // 去除重复邻接
     for (auto& neighbors : adjacency)
     {
         std::sort(neighbors.begin(), neighbors.end());
         neighbors.erase(std::unique(neighbors.begin(), neighbors.end()), neighbors.end());
     }
 
-    // 执行松弛迭代
     for (int iter = 0; iter < innerIterations; iter++)
     {
         std::vector<Vertex> newPositions = m_vertices;
@@ -1306,15 +1251,12 @@ void MarchingCube::tangentialRelaxation(int innerIterations, float lambda, bool 
         {
             if (adjacency[i].empty()) continue;
 
-            // 边界顶点处理
             if (isBoundaryVertex[i])
             {
-                // 边界顶点使用更小的lambda
                 float boundaryLambda = lambda * 0.3f;
                 glm::vec3 avgPos = computeLaplacianSmooth(i, adjacency[i]);
                 glm::vec3 displacement = avgPos - m_vertices[i].position;
 
-                // 切向分量
                 glm::vec3 normal = glm::normalize(m_vertices[i].normal);
                 glm::vec3 tangential = displacement - glm::dot(displacement, normal) * normal;
 
@@ -1322,22 +1264,18 @@ void MarchingCube::tangentialRelaxation(int innerIterations, float lambda, bool 
             }
             else
             {
-                // 内部顶点
                 glm::vec3 avgPos = computeLaplacianSmooth(i, adjacency[i]);
                 glm::vec3 displacement = avgPos - m_vertices[i].position;
 
-                // 切向分量
                 glm::vec3 normal = glm::normalize(m_vertices[i].normal);
                 glm::vec3 tangential = displacement - glm::dot(displacement, normal) * normal;
 
-                // 自适应lambda（基于顶点价数）
                 float adaptiveLambda = lambda * (6.0f / adjacency[i].size());
                 adaptiveLambda = glm::clamp(adaptiveLambda, 0.1f, 1.0f);
 
                 newPositions[i].position += adaptiveLambda * tangential;
             }
 
-            // 更新最大位移
             float dispLength = glm::length(newPositions[i].position - m_vertices[i].position);
             if (dispLength > maxDisplacement)
             {
@@ -1345,20 +1283,17 @@ void MarchingCube::tangentialRelaxation(int innerIterations, float lambda, bool 
             }
         }
 
-        // 更新顶点位置
         for (size_t i = 0; i < m_vertices.size(); i++)
         {
             m_vertices[i].position = newPositions[i].position;
         }
 
-        // 如果位移很小，提前终止
         if (maxDisplacement < 0.0001f)
         {
             break;
         }
     }
 
-    // 更新法线
     updateNormals();
 }
 
@@ -1368,7 +1303,6 @@ void MarchingCube::detectBoundaryVertices(std::vector<bool>& isBoundary)
 
     isBoundary.assign(m_vertices.size(), false);
 
-    // 使用边计数方法检测边界
     std::unordered_map<uint64_t, int> edgeCount;
 
     for (size_t i = 0; i < m_indices.size(); i += 3) {
@@ -1376,7 +1310,6 @@ void MarchingCube::detectBoundaryVertices(std::vector<bool>& isBoundary)
         size_t v1 = m_indices[i + 1];
         size_t v2 = m_indices[i + 2];
 
-        // 生成唯一的边键
         uint64_t e0 = (v0 < v1) ? (v0 * m_vertices.size() + v1) : (v1 * m_vertices.size() + v0);
         uint64_t e1 = (v1 < v2) ? (v1 * m_vertices.size() + v2) : (v2 * m_vertices.size() + v1);
         uint64_t e2 = (v2 < v0) ? (v2 * m_vertices.size() + v0) : (v0 * m_vertices.size() + v2);
@@ -1386,7 +1319,6 @@ void MarchingCube::detectBoundaryVertices(std::vector<bool>& isBoundary)
         edgeCount[e2]++;
     }
 
-    // 标记边界顶点
     for (size_t i = 0; i < m_indices.size(); i += 3) {
         size_t v0 = m_indices[i];
         size_t v1 = m_indices[i + 1];
@@ -1415,13 +1347,11 @@ void MarchingCube::updateNormals()
 {
     if (m_vertices.empty() || m_indices.empty()) return;
 
-    // 重置法线
     for (auto& vertex : m_vertices)
     {
         vertex.normal = glm::vec3(0.0f);
     }
 
-    // 计算面法线并累加到顶点
     for (size_t i = 0; i < m_indices.size(); i += 3)
     {
         int i0 = m_indices[i];
@@ -1436,7 +1366,6 @@ void MarchingCube::updateNormals()
         glm::vec3 edge2 = v2 - v0;
         glm::vec3 faceNormal = glm::normalize(glm::cross(edge1, edge2));
 
-        // 累加到三个顶点
         m_vertices[i0].normal += faceNormal;
         m_vertices[i1].normal += faceNormal;
         m_vertices[i2].normal += faceNormal;
@@ -1447,27 +1376,25 @@ void MarchingCube::projectToSurface()
 {
     if (m_vertices.empty()) return;
 
-    // 对于球形表面，简单归一化
     for (auto& vertex : m_vertices)
     {
         float distance = glm::length(vertex.position);
         if (distance > 0.001f)
         {
-            // 保持比例，但投影到单位球面
             vertex.position = glm::normalize(vertex.position);
-            vertex.normal = vertex.position; // 球形表面的法线就是位置向量
+            vertex.normal = vertex.position; 
         }
     }
 }
 
-bool MarchingCube::canCollapseEdge(size_t v1, size_t v2) const {
-    // 1. 基本检查：不能是同一个顶点
+bool MarchingCube::canCollapseEdge(size_t v1, size_t v2) const 
+{
+    
     if (v1 == v2) return false;
 
     const size_t nVerts = m_vertices.size();
     const size_t nTris = m_indices.size() / 3;
 
-    // 2. 构建临时邻接表（顶点 -> 邻接三角形索引集合）
     std::vector<std::vector<size_t>> vertToTris(nVerts);
     for (size_t i = 0; i < nTris; ++i) {
         size_t i0 = m_indices[3*i];
@@ -1478,7 +1405,6 @@ bool MarchingCube::canCollapseEdge(size_t v1, size_t v2) const {
         vertToTris[i2].push_back(i);
     }
 
-    // 3. 找出共享边 (v1,v2) 的三角形
     std::vector<size_t> sharedTris;
     for (size_t t : vertToTris[v1]) {
         const size_t i0 = m_indices[3*t];
@@ -1487,12 +1413,11 @@ bool MarchingCube::canCollapseEdge(size_t v1, size_t v2) const {
         if ((i0 == v2 || i1 == v2 || i2 == v2))
             sharedTris.push_back(t);
     }
-    // 一条内部边应恰好被两个三角形共享，边界边则只有一个
+    
     if (sharedTris.size() != 1 && sharedTris.size() != 2)
-        return false;   // 非流形边（0 或 >2 个三角形）
+        return false;   
     bool isBoundaryEdge = (sharedTris.size() == 1);
 
-    // 4. 找出 v1 和 v2 的所有公共邻接顶点（除了彼此）
     std::unordered_set<size_t> neighV1, neighV2;
     for (size_t t : vertToTris[v1]) {
         const size_t i0 = m_indices[3*t];
@@ -1517,20 +1442,16 @@ bool MarchingCube::canCollapseEdge(size_t v1, size_t v2) const {
             commonNeighbors.push_back(w);
     }
 
-    // 内部边应当恰好有两个公共邻接顶点（即两个三角形中除 v1,v2 外的第三顶点）
     if (!isBoundaryEdge && commonNeighbors.size() != 2)
         return false;
-    // 边界边应当恰好有一个公共邻接顶点（边界三角形中除 v1,v2 外的第三顶点）
+    
     if (isBoundaryEdge && commonNeighbors.size() != 1)
         return false;
 
-    // 5. 边界特殊检查：边界边折叠只允许两个端点都在边界上，且边本身就是边界边
     auto isVertexOnBoundary = [&](size_t v) -> bool {
-        // 顶点在边界上当且仅当其邻接三角形个数少于邻接顶点个数（简化判断）
-        // 更精确：检查该顶点的邻接边是否有未配对的边
-        // 这里我们通过边计数来判断：如果顶点关联的边中有一条边只属于一个三角形，则为边界顶点
         std::unordered_set<size_t> edgeNeighbors;
-        for (size_t t : vertToTris[v]) {
+        for (size_t t : vertToTris[v]) 
+        {
             const size_t i0 = m_indices[3*t];
             const size_t i1 = m_indices[3*t+1];
             const size_t i2 = m_indices[3*t+2];
@@ -1538,9 +1459,8 @@ bool MarchingCube::canCollapseEdge(size_t v1, size_t v2) const {
             if (i1 != v) edgeNeighbors.insert(i1);
             if (i2 != v) edgeNeighbors.insert(i2);
         }
-        // 统计每条邻接边的出现次数（这里简单用邻接顶点出现次数代替，不完全准确但够用）
-        std::unordered_map<size_t, int> edgeCount;
-        for (size_t t : vertToTris[v]) {
+        for (size_t t : vertToTris[v]) 
+        {
             const size_t i0 = m_indices[3*t];
             const size_t i1 = m_indices[3*t+1];
             const size_t i2 = m_indices[3*t+2];
@@ -1548,8 +1468,9 @@ bool MarchingCube::canCollapseEdge(size_t v1, size_t v2) const {
             if (i1 != v) edgeCount[i1]++;
             if (i2 != v) edgeCount[i2]++;
         }
-        for (auto& p : edgeCount) {
-            if (p.second == 1) return true; // 存在只出现一次的邻接顶点，即边界边
+        for (auto& p : edgeCount) 
+        {
+            if (p.second == 1) return true; 
         }
         return false;
     };
@@ -1557,25 +1478,22 @@ bool MarchingCube::canCollapseEdge(size_t v1, size_t v2) const {
     bool v1Boundary = isVertexOnBoundary(v1);
     bool v2Boundary = isVertexOnBoundary(v2);
 
-    if (isBoundaryEdge) {
-        // 边界边折叠：两个端点必须都是边界顶点（否则会破坏边界）
+    if (isBoundaryEdge) 
+    {
         if (!v1Boundary || !v2Boundary) return false;
-    } else {
-        // 内部边折叠：两个端点不能是边界顶点（否则边界会被拉入内部）
+    } 
+    else 
+    {
         if (v1Boundary || v2Boundary) return false;
     }
 
-    // 6. 检查折叠后是否会生成退化三角形（面积过小）或法向反转
-    // 计算折叠后的新顶点位置（这里采用中点，实际可用其他策略）
     glm::vec3 newPos = (m_vertices[v1].position + m_vertices[v2].position) * 0.5f;
 
-    // 收集所有受影响的三角形（包含 v1 或 v2 的所有三角形，除了即将删除的两个共享三角形）
     std::unordered_set<size_t> affectedTris;
     for (size_t t : vertToTris[v1]) affectedTris.insert(t);
     for (size_t t : vertToTris[v2]) affectedTris.insert(t);
-    for (size_t t : sharedTris) affectedTris.erase(t); // 删除的两个三角形将被移除
+    for (size_t t : sharedTris) affectedTris.erase(t); 
 
-    // 辅助函数：计算三角形面积（通过边长）
     auto triArea = [](const glm::vec3& a, const glm::vec3& b, const glm::vec3& c) -> float {
         glm::vec3 ab = b - a;
         glm::vec3 ac = c - a;
@@ -1583,26 +1501,22 @@ bool MarchingCube::canCollapseEdge(size_t v1, size_t v2) const {
     };
 
     const float minArea = 1e-6f;
-    const float minDot = 0.1f;  // 法向夹角余弦阈值，>0 表示锐角
+    const float minDot = 0.1f;  
 
     for (size_t t : affectedTris) {
         size_t i0 = m_indices[3*t];
         size_t i1 = m_indices[3*t+1];
         size_t i2 = m_indices[3*t+2];
 
-        // 将 v1 和 v2 替换为新顶点，得到折叠后的新三角形顶点索引（实际位置使用 newPos）
         glm::vec3 p0 = (i0 == v1 || i0 == v2) ? newPos : m_vertices[i0].position;
         glm::vec3 p1 = (i1 == v1 || i1 == v2) ? newPos : m_vertices[i1].position;
         glm::vec3 p2 = (i2 == v1 || i2 == v2) ? newPos : m_vertices[i2].position;
 
-        // 防止重复顶点（如果三角形有两个顶点被折叠到同一点，则退化）
         if (p0 == p1 || p1 == p2 || p2 == p0) return false;
 
-        // 检查面积
         float area = triArea(p0, p1, p2);
         if (area < minArea) return false;
 
-        // 检查法向反转：计算原三角形法向和新三角形法向，确保方向大致一致
         glm::vec3 oldNormal = glm::normalize(glm::cross(
             m_vertices[i1].position - m_vertices[i0].position,
             m_vertices[i2].position - m_vertices[i0].position));
@@ -1610,27 +1524,25 @@ bool MarchingCube::canCollapseEdge(size_t v1, size_t v2) const {
         if (glm::dot(oldNormal, newNormal) < minDot) return false;
     }
 
-    // 7. 额外检查：确保折叠后不会产生非流形边（即没有两个不同的三角形共享同一条新边）
-    // 这里通过检查受影响区域中每个新边的出现次数不超过2来验证
     std::map<std::pair<size_t, size_t>, int> newEdgeCount;
     for (size_t t : affectedTris) {
         size_t i0 = m_indices[3*t];
         size_t i1 = m_indices[3*t+1];
         size_t i2 = m_indices[3*t+2];
-        // 将 v1,v2 映射到一个新的虚拟顶点索引（比如 nVerts）
+        
         auto remap = [&](size_t v) -> size_t {
-            if (v == v1 || v == v2) return nVerts; // 使用新顶点占位符
+            if (v == v1 || v == v2) return nVerts; 
             return v;
         };
         size_t a = remap(i0), b = remap(i1), c = remap(i2);
-        if (a == b || b == c || c == a) continue; // 退化三角形已在上面排除
+        if (a == b || b == c || c == a) continue; 
         std::pair<size_t,size_t> e1 = {std::min(a,b), std::max(a,b)};
         std::pair<size_t,size_t> e2 = {std::min(b,c), std::max(b,c)};
         std::pair<size_t,size_t> e3 = {std::min(c,a), std::max(c,a)};
         newEdgeCount[e1]++; newEdgeCount[e2]++; newEdgeCount[e3]++;
     }
     for (auto& p : newEdgeCount) {
-        if (p.second > 2) return false; // 一条边被多于两个三角形共享 -> 非流形
+        if (p.second > 2) return false; 
     }
 
     return true;

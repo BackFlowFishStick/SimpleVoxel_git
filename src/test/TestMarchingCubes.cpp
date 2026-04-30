@@ -227,14 +227,11 @@ void TestMarchingCubes::performRayPicking(const double& xpos, const double& ypos
     glm::vec4 farView = invProj * farPoint;
     farView /= farView.w;
 
-    // 视图空间：相机位于原点 (0,0,0)
     glm::vec3 rayOriginView(0.0f);
     glm::vec3 rayDirView   = glm::normalize(glm::vec3(farView - nearView));
 
-    // 只处理第二个网格（m_mat1）
     glm::mat4 invMV = glm::inverse(m_mat1);
 
-    // 将射线从视图空间变换到模型局部空间
     glm::vec4 localOrigin4 = invMV * glm::vec4(rayOriginView, 1.0f);
     localOrigin4 /= localOrigin4.w;
     glm::vec3 localRayOrigin(localOrigin4);
@@ -275,7 +272,7 @@ bool TestMarchingCubes::detectRayTriangleIntersect(const glm::vec3& origin, cons
     glm::vec3 edge2 = v2 - v0;
     glm::vec3 h = glm::cross(dir, edge2);
     float a = glm::dot(edge1, h);
-    if (fabs(a) < EPSILON) return false;  // 平行
+    if (fabs(a) < EPSILON) return false;  
     float f = 1.0f / a;
     glm::vec3 s = origin - v0;
     float u = f * glm::dot(s, h);
