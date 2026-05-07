@@ -911,7 +911,7 @@ int MarchingCube::polygonise(GridCell grid, float isoLevel, Triangle* triangles)
 
 size_t MarchingCube::hashVertex(const glm::vec3& vertex) const
 {
-    const float epsilon = 0.1e6f;
+    const float epsilon = 0.0001f;
     size_t h1 = std::hash<float>()(std::round(vertex.x / epsilon) * epsilon);
     size_t h2 = std::hash<float>()(std::round(vertex.y / epsilon) * epsilon);
     size_t h3 = std::hash<float>()(std::round(vertex.z / epsilon) * epsilon);
@@ -1389,7 +1389,6 @@ void MarchingCube::projectToSurface()
 
 bool MarchingCube::canCollapseEdge(size_t v1, size_t v2) const 
 {
-    
     if (v1 == v2) return false;
 
     const size_t nVerts = m_vertices.size();
@@ -1397,9 +1396,9 @@ bool MarchingCube::canCollapseEdge(size_t v1, size_t v2) const
 
     std::vector<std::vector<size_t>> vertToTris(nVerts);
     for (size_t i = 0; i < nTris; ++i) {
-        size_t i0 = m_indices[3*i];
-        size_t i1 = m_indices[3*i+1];
-        size_t i2 = m_indices[3*i+2];
+        size_t i0 = m_indices[3 * i];
+        size_t i1 = m_indices[3 * i + 1];
+        size_t i2 = m_indices[3 * i + 2];
         vertToTris[i0].push_back(i);
         vertToTris[i1].push_back(i);
         vertToTris[i2].push_back(i);
@@ -1407,30 +1406,30 @@ bool MarchingCube::canCollapseEdge(size_t v1, size_t v2) const
 
     std::vector<size_t> sharedTris;
     for (size_t t : vertToTris[v1]) {
-        const size_t i0 = m_indices[3*t];
-        const size_t i1 = m_indices[3*t+1];
-        const size_t i2 = m_indices[3*t+2];
+        const size_t i0 = m_indices[3 * t];
+        const size_t i1 = m_indices[3 * t + 1];
+        const size_t i2 = m_indices[3 * t + 2];
         if ((i0 == v2 || i1 == v2 || i2 == v2))
             sharedTris.push_back(t);
     }
-    
+   
     if (sharedTris.size() != 1 && sharedTris.size() != 2)
         return false;   
     bool isBoundaryEdge = (sharedTris.size() == 1);
 
     std::unordered_set<size_t> neighV1, neighV2;
     for (size_t t : vertToTris[v1]) {
-        const size_t i0 = m_indices[3*t];
-        const size_t i1 = m_indices[3*t+1];
-        const size_t i2 = m_indices[3*t+2];
+        const size_t i0 = m_indices[3 * t];
+        const size_t i1 = m_indices[3 * t + 1];
+        const size_t i2 = m_indices[3 * t + 2];
         if (i0 != v1) neighV1.insert(i0);
         if (i1 != v1) neighV1.insert(i1);
         if (i2 != v1) neighV1.insert(i2);
     }
     for (size_t t : vertToTris[v2]) {
-        const size_t i0 = m_indices[3*t];
-        const size_t i1 = m_indices[3*t+1];
-        const size_t i2 = m_indices[3*t+2];
+        const size_t i0 = m_indices[3 * t];
+        const size_t i1 = m_indices[3 * t + 1];
+        const size_t i2 = m_indices[3 * t + 2];
         if (i0 != v2) neighV2.insert(i0);
         if (i1 != v2) neighV2.insert(i1);
         if (i2 != v2) neighV2.insert(i2);
@@ -1444,36 +1443,35 @@ bool MarchingCube::canCollapseEdge(size_t v1, size_t v2) const
 
     if (!isBoundaryEdge && commonNeighbors.size() != 2)
         return false;
-    
+   
     if (isBoundaryEdge && commonNeighbors.size() != 1)
         return false;
 
     auto isVertexOnBoundary = [&](size_t v) -> bool {
         std::unordered_set<size_t> edgeNeighbors;
-        for (size_t t : vertToTris[v]) 
-        {
-            const size_t i0 = m_indices[3*t];
-            const size_t i1 = m_indices[3*t+1];
-            const size_t i2 = m_indices[3*t+2];
+        for (size_t t : vertToTris[v]) {
+            const size_t i0 = m_indices[3 * t];
+            const size_t i1 = m_indices[3 * t + 1];
+            const size_t i2 = m_indices[3 * t + 2];
             if (i0 != v) edgeNeighbors.insert(i0);
             if (i1 != v) edgeNeighbors.insert(i1);
             if (i2 != v) edgeNeighbors.insert(i2);
         }
-        for (size_t t : vertToTris[v]) 
-        {
-            const size_t i0 = m_indices[3*t];
-            const size_t i1 = m_indices[3*t+1];
-            const size_t i2 = m_indices[3*t+2];
+        
+        std::unordered_map<size_t, int> edgeCount;
+        for (size_t t : vertToTris[v]) {
+            const size_t i0 = m_indices[3 * t];
+            const size_t i1 = m_indices[3 * t + 1];
+            const size_t i2 = m_indices[3 * t + 2];
             if (i0 != v) edgeCount[i0]++;
             if (i1 != v) edgeCount[i1]++;
             if (i2 != v) edgeCount[i2]++;
         }
-        for (auto& p : edgeCount) 
-        {
+        for (auto& p : edgeCount) {
             if (p.second == 1) return true; 
         }
         return false;
-    };
+        };
 
     bool v1Boundary = isVertexOnBoundary(v1);
     bool v2Boundary = isVertexOnBoundary(v2);
@@ -1481,14 +1479,14 @@ bool MarchingCube::canCollapseEdge(size_t v1, size_t v2) const
     if (isBoundaryEdge) 
     {
         if (!v1Boundary || !v2Boundary) return false;
-    } 
+    }
     else 
-    {
+    {     
         if (v1Boundary || v2Boundary) return false;
     }
 
     glm::vec3 newPos = (m_vertices[v1].position + m_vertices[v2].position) * 0.5f;
-
+   
     std::unordered_set<size_t> affectedTris;
     for (size_t t : vertToTris[v1]) affectedTris.insert(t);
     for (size_t t : vertToTris[v2]) affectedTris.insert(t);
@@ -1498,15 +1496,16 @@ bool MarchingCube::canCollapseEdge(size_t v1, size_t v2) const
         glm::vec3 ab = b - a;
         glm::vec3 ac = c - a;
         return 0.5f * glm::length(glm::cross(ab, ac));
-    };
+        };
 
     const float minArea = 1e-6f;
     const float minDot = 0.1f;  
 
-    for (size_t t : affectedTris) {
-        size_t i0 = m_indices[3*t];
-        size_t i1 = m_indices[3*t+1];
-        size_t i2 = m_indices[3*t+2];
+    for (size_t t : affectedTris) 
+    {
+        size_t i0 = m_indices[3 * t];
+        size_t i1 = m_indices[3 * t + 1];
+        size_t i2 = m_indices[3 * t + 2];
 
         glm::vec3 p0 = (i0 == v1 || i0 == v2) ? newPos : m_vertices[i0].position;
         glm::vec3 p1 = (i1 == v1 || i1 == v2) ? newPos : m_vertices[i1].position;
@@ -1525,23 +1524,25 @@ bool MarchingCube::canCollapseEdge(size_t v1, size_t v2) const
     }
 
     std::map<std::pair<size_t, size_t>, int> newEdgeCount;
-    for (size_t t : affectedTris) {
-        size_t i0 = m_indices[3*t];
-        size_t i1 = m_indices[3*t+1];
-        size_t i2 = m_indices[3*t+2];
-        
+    for (size_t t : affectedTris) 
+    {
+        size_t i0 = m_indices[3 * t];
+        size_t i1 = m_indices[3 * t + 1];
+        size_t i2 = m_indices[3 * t + 2];
+       
         auto remap = [&](size_t v) -> size_t {
             if (v == v1 || v == v2) return nVerts; 
             return v;
-        };
+            };
         size_t a = remap(i0), b = remap(i1), c = remap(i2);
         if (a == b || b == c || c == a) continue; 
-        std::pair<size_t,size_t> e1 = {std::min(a,b), std::max(a,b)};
-        std::pair<size_t,size_t> e2 = {std::min(b,c), std::max(b,c)};
-        std::pair<size_t,size_t> e3 = {std::min(c,a), std::max(c,a)};
+        std::pair<size_t, size_t> e1 = { std::min(a,b), std::max(a,b) };
+        std::pair<size_t, size_t> e2 = { std::min(b,c), std::max(b,c) };
+        std::pair<size_t, size_t> e3 = { std::min(c,a), std::max(c,a) };
         newEdgeCount[e1]++; newEdgeCount[e2]++; newEdgeCount[e3]++;
     }
-    for (auto& p : newEdgeCount) {
+    for (auto& p : newEdgeCount)
+    {
         if (p.second > 2) return false; 
     }
 
